@@ -46,6 +46,12 @@ class AsyncEventContextManager(Generic[T], AbstractAsyncContextManager):
         self._event = AsyncEventInfo[T](future)
 
     async def __aenter__(self) -> AsyncEventInfo[T]:
+        # The wait takes its first step before the body runs. A task that is
+        # cancelled before its first step, as __aexit__ cancels it when the body
+        # raised before its first await, never runs its coroutine, and the
+        # coroutines that the wait holds are never awaited: their listeners and
+        # timers stay, and Python warns at their collection.
+        await asyncio.sleep(0)
         return self._event
 
     async def __aexit__(
@@ -68,9 +74,7 @@ class AsyncBase(ImplWrapper):
     def __str__(self) -> str:
         return self._impl_obj.__str__()
 
-    def _wrap_handler(
-        self, handler: Union[Callable[..., Any], Any]
-    ) -> Callable[..., None]:
+    def _wrap_handler(self, handler: Union[Callable[..., Any], Any]) -> Any:
         if callable(handler):
             return mapping.wrap_handler(handler)
         return handler
