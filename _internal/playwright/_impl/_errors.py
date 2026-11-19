@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The public error classes of the API: Error, TimeoutError and TargetClosedError.
+# These are types that we use in the API. They are public and are a part of the
+# stable API.
 
-The generated API and the playwright.async_api and playwright.sync_api packages
-export them from here. The client raises them through errors.py, the port of
-packages/playwright-core/src/client/errors.ts.
-"""
 
-from typing import Any, List, Optional
+from typing import Optional
+
+
+def is_target_closed_error(error: Exception) -> bool:
+    return isinstance(error, TargetClosedError)
 
 
 class Error(Exception):
@@ -27,8 +28,6 @@ class Error(Exception):
         self._message = message
         self._name: Optional[str] = None
         self._stack: Optional[str] = None
-        self._details: Optional[Any] = None
-        self._log: Optional[List[str]] = None
         super().__init__(message)
 
     @property
@@ -51,3 +50,11 @@ class TimeoutError(Error):
 class TargetClosedError(Error):
     def __init__(self, message: str = None) -> None:
         super().__init__(message or "Target page, context or browser has been closed")
+
+
+def rewrite_error(error: Exception, message: str) -> Exception:
+    rewritten_exc = type(error)(message)
+    if isinstance(rewritten_exc, Error) and isinstance(error, Error):
+        rewritten_exc._name = error.name
+        rewritten_exc._stack = error.stack
+    return rewritten_exc

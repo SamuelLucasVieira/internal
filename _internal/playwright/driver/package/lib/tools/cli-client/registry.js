@@ -91,9 +91,9 @@ class Registry {
   }
   static async load() {
     const sessions = /* @__PURE__ */ new Map();
-    const hashDirs = await import_fs.default.promises.readdir(baseDaemonDir()).catch(() => []);
+    const hashDirs = await import_fs.default.promises.readdir(baseDaemonDir).catch(() => []);
     for (const workspaceDirHash of hashDirs) {
-      const daemonDir = import_path.default.join(baseDaemonDir(), workspaceDirHash);
+      const daemonDir = import_path.default.join(baseDaemonDir, workspaceDirHash);
       const stat = await import_fs.default.promises.stat(daemonDir);
       if (!stat.isDirectory())
         continue;
@@ -116,9 +116,9 @@ class Registry {
     return new Registry(sessions);
   }
 }
-function computeBaseDaemonDir() {
-  if (process.env.PWTEST_DAEMON_SESSION_DIR)
-    return process.env.PWTEST_DAEMON_SESSION_DIR;
+const baseDaemonDir = (() => {
+  if (process.env.PLAYWRIGHT_DAEMON_SESSION_DIR)
+    return process.env.PLAYWRIGHT_DAEMON_SESSION_DIR;
   let localCacheDir;
   if (process.platform === "linux")
     localCacheDir = process.env.XDG_CACHE_HOME || import_path.default.join(import_os.default.homedir(), ".cache");
@@ -129,11 +129,7 @@ function computeBaseDaemonDir() {
   if (!localCacheDir)
     throw new Error("Unsupported platform: " + process.platform);
   return import_path.default.join(localCacheDir, "ms-playwright", "daemon");
-}
-let _baseDaemonDir;
-function baseDaemonDir() {
-  return _baseDaemonDir ??= computeBaseDaemonDir();
-}
+})();
 function createClientInfo() {
   const workspaceDir = findWorkspaceDir(process.cwd());
   const version = process.env.PLAYWRIGHT_CLI_VERSION_FOR_TEST || import_package.packageJSON.version;
@@ -161,7 +157,7 @@ function findWorkspaceDir(startDir) {
   return void 0;
 }
 const daemonProfilesDir = (workspaceDirHash) => {
-  return import_path.default.join(baseDaemonDir(), workspaceDirHash);
+  return import_path.default.join(baseDaemonDir, workspaceDirHash);
 };
 function explicitSessionName(sessionName) {
   return sessionName || process.env.PLAYWRIGHT_CLI_SESSION;

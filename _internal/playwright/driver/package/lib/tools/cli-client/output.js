@@ -34,7 +34,6 @@ __export(output_exports, {
 module.exports = __toCommonJS(output_exports);
 var import_path = __toESM(require("path"));
 var import_extension = require("../utils/extension");
-var import_bootstrap = require("../../bootstrap");
 class TextOutput {
   constructor() {
     this.json = false;
@@ -49,41 +48,37 @@ class TextOutput {
     console.error(`Unknown command: ${name}
 `);
     console.log(globalHelp);
-    return (0, import_bootstrap.processExit)(1);
+    return process.exit(1);
   }
   errorUnknownOption(opts, commandHelp) {
     console.error(`Unknown option${opts.length > 1 ? "s" : ""}: ${opts.map((f) => `--${f}`).join(", ")}`);
     console.log("");
     console.log(commandHelp);
-    return (0, import_bootstrap.processExit)(1);
+    return process.exit(1);
   }
   errorTooManyArguments(expected, received, commandHelp) {
     console.error(`error: too many arguments: expected ${expected}, received ${received}`);
     console.log("");
     console.log(commandHelp);
-    return (0, import_bootstrap.processExit)(1);
+    return process.exit(1);
   }
   errorAttachConflict() {
-    console.error(`Error: only one of [name], --cdp, --endpoint, or --extension can be specified`);
-    return (0, import_bootstrap.processExit)(1);
+    console.error(`Error: cannot use target name with --cdp, --endpoint, or --extension`);
+    return process.exit(1);
   }
   errorDetachNotAttached(session) {
     console.error(`Error: session '${session}' was not attached; use \`playwright-cli${session !== "default" ? ` -s=${session}` : ""} close\` to stop it.`);
-    return (0, import_bootstrap.processExit)(1);
+    return process.exit(1);
   }
   errorBrowserNotOpenForTool(session) {
     console.log(`The browser '${session}' is not open, please run open first`);
     console.log("");
     console.log(`  playwright-cli${session !== "default" ? ` -s=${session}` : ""} open [params]`);
-    return (0, import_bootstrap.processExit)(1);
+    return process.exit(1);
   }
   errorAttachNoTarget() {
     console.error(`Error: no target specified for attach command; use one of [name], --cdp, --endpoint, or --extension to specify the target to attach to.`);
-    return (0, import_bootstrap.processExit)(1);
-  }
-  errorInstallGlobalRequiresSkills() {
-    console.error(`Error: --global requires --skills`);
-    return (0, import_bootstrap.processExit)(1);
+    return process.exit(1);
   }
   list({ all, browsers, servers, channelSessions }) {
     const byWorkspace = /* @__PURE__ */ new Map();
@@ -166,7 +161,7 @@ class TextOutput {
   attach(session, pid, endpoint, toolResult) {
     if (endpoint) {
       console.log(`### Session \`${session}\` created, attached to \`${endpoint}\`.`);
-      console.log(`Run commands with: playwright-cli -s=${session} <command>`);
+      console.log(`Run commands with: playwright-cli --s=${session} <command>`);
       console.log("");
     } else {
       console.log(`### Browser \`${session}\` opened with pid ${pid}.`);
@@ -215,35 +210,31 @@ class JsonOutput {
   }
   errorUnknownCommand(name, _globalHelp) {
     this._emit({ isError: true, error: `Unknown command: ${name}` });
-    return (0, import_bootstrap.processExit)(1);
+    return process.exit(1);
   }
   errorUnknownOption(opts, _commandHelp) {
     this._emit({ isError: true, error: `Unknown option${opts.length > 1 ? "s" : ""}: ${opts.map((f) => `--${f}`).join(", ")}` });
-    return (0, import_bootstrap.processExit)(1);
+    return process.exit(1);
   }
   errorTooManyArguments(expected, received, _commandHelp) {
     this._emit({ isError: true, error: `error: too many arguments: expected ${expected}, received ${received}` });
-    return (0, import_bootstrap.processExit)(1);
+    return process.exit(1);
   }
   errorAttachConflict() {
-    this._emit({ isError: true, error: `only one of [name], --cdp, --endpoint, or --extension can be specified` });
-    return (0, import_bootstrap.processExit)(1);
+    this._emit({ isError: true, error: `cannot use target name with --cdp, --endpoint, or --extension` });
+    return process.exit(1);
   }
   errorDetachNotAttached(session) {
     this._emit({ isError: true, error: `session '${session}' was not attached; use close to stop it.` });
-    return (0, import_bootstrap.processExit)(1);
+    return process.exit(1);
   }
   errorBrowserNotOpenForTool(session) {
     this._emit({ isError: true, error: `The browser '${session}' is not open, please run open first` });
-    return (0, import_bootstrap.processExit)(1);
+    return process.exit(1);
   }
   errorAttachNoTarget() {
     this._emit({ isError: true, error: `no target specified for attach command; use one of [name], --cdp, --endpoint, or --extension to specify the target to attach to.` });
-    return (0, import_bootstrap.processExit)(1);
-  }
-  errorInstallGlobalRequiresSkills() {
-    this._emit({ isError: true, error: `--global requires --skills` });
-    return (0, import_bootstrap.processExit)(1);
+    return process.exit(1);
   }
   list({ all, browsers, servers, channelSessions }) {
     const payload = { browsers };

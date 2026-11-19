@@ -24,11 +24,11 @@ import playwright._impl._api_structures
 import playwright._impl._errors
 import playwright._impl._form_data
 import playwright.async_api._generated
-from playwright._impl._api_classes import (
+from playwright._impl._assertions import (
     APIResponseAssertions as APIResponseAssertionsImpl,
 )
-from playwright._impl._api_classes import LocatorAssertions as LocatorAssertionsImpl
-from playwright._impl._api_classes import PageAssertions as PageAssertionsImpl
+from playwright._impl._assertions import LocatorAssertions as LocatorAssertionsImpl
+from playwright._impl._assertions import PageAssertions as PageAssertionsImpl
 from playwright.async_api._context_manager import PlaywrightContextManager
 from playwright.async_api._generated import (
     APIRequest,
@@ -81,16 +81,11 @@ PdfMargins = playwright._impl._api_structures.PdfMargins
 Position = playwright._impl._api_structures.Position
 ProxySettings = playwright._impl._api_structures.ProxySettings
 ResourceTiming = playwright._impl._api_structures.ResourceTiming
-ScreencastActionStyle = playwright._impl._api_structures.ScreencastActionStyle
 ScreencastFrame = playwright._impl._api_structures.ScreencastFrame
-ScreencastSize = playwright._impl._api_structures.ScreencastSize
 SourceLocation = playwright._impl._api_structures.SourceLocation
 StorageState = playwright._impl._api_structures.StorageState
 StorageStateCookie = playwright._impl._api_structures.StorageStateCookie
 ViewportSize = playwright._impl._api_structures.ViewportSize
-VirtualCredential = playwright._impl._api_structures.VirtualCredential
-WebMCPTool = playwright._impl._api_structures.WebMCPTool
-WebMCPToolAnnotations = playwright._impl._api_structures.WebMCPToolAnnotations
 
 Error = playwright._impl._errors.Error
 TimeoutError = playwright._impl._errors.TimeoutError
@@ -247,9 +242,7 @@ __all__ = [
     "ResourceTiming",
     "Response",
     "Route",
-    "ScreencastActionStyle",
     "ScreencastFrame",
-    "ScreencastSize",
     "Selectors",
     "SourceLocation",
     "StorageState",
@@ -258,10 +251,7 @@ __all__ = [
     "Touchscreen",
     "Video",
     "ViewportSize",
-    "VirtualCredential",
     "WebError",
-    "WebMCPTool",
-    "WebMCPToolAnnotations",
     "WebSocket",
     "WebSocketRoute",
     "Worker",

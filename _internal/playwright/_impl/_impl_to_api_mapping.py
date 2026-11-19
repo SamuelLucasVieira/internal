@@ -17,7 +17,6 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 from playwright._impl._errors import Error
 from playwright._impl._map import Map
-from playwright._impl._signature import signature
 
 API_ATTR = "_pw_api_instance_"
 IMPL_ATTR = "_pw_impl_instance_"
@@ -63,8 +62,7 @@ class ImplToApiMapping:
             for item in obj:
                 a.append(self.from_maybe_impl(item, visited))
             return a
-        # An impl object can name the impl class whose API wraps it (_api_impl_class).
-        api_class = self._mapping.get(getattr(obj, "_api_impl_class", type(obj)))
+        api_class = self._mapping.get(type(obj))
         if api_class:
             api_instance = getattr(obj, API_ATTR, None)
             if not api_instance:
@@ -121,23 +119,7 @@ class ImplToApiMapping:
 
     def wrap_handler(self, handler: Callable[..., Any]) -> Callable[..., None]:
         def wrapper_func(*args: Any) -> Any:
-            parameters = signature(handler).parameters
-            has_varargs = any(
-                parameter.kind == inspect.Parameter.VAR_POSITIONAL
-                for parameter in parameters.values()
-            )
-            arg_count = (
-                len(args)
-                if has_varargs
-                else sum(
-                    parameter.kind
-                    in (
-                        inspect.Parameter.POSITIONAL_ONLY,
-                        inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                    )
-                    for parameter in parameters.values()
-                )
-            )
+            arg_count = len(inspect.signature(handler).parameters)
             return handler(
                 *list(map(lambda a: self.from_maybe_impl(a), args))[:arg_count]
             )

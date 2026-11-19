@@ -13,13 +13,15 @@
 # limitations under the License.
 
 import asyncio
-import sys
+import inspect
+import traceback
 from contextlib import AbstractContextManager
 from types import TracebackType
 from typing import (
     Any,
-    Awaitable,
     Callable,
+    Coroutine,
+    Generator,
     Generic,
     Optional,
     Type,
@@ -28,8 +30,9 @@ from typing import (
     cast,
 )
 
-from playwright._impl._errors import Error
-from playwright._impl._greenlets import connection_closed_error, wait_for_future
+import greenlet
+
+from playwright._impl._helper import Error
 from playwright._impl._impl_to_api_mapping import ImplToApiMapping, ImplWrapper
 
 mapping = ImplToApiMapping()
@@ -43,12 +46,14 @@ class EventInfo(Generic[T]):
     def __init__(self, sync_base: "SyncBase", future: "asyncio.Future[T]") -> None:
         self._sync_base = sync_base
         self._future = future
+        g_self = greenlet.getcurrent()
+        self._future.add_done_callback(lambda _: g_self.switch())
 
     @property
     def value(self) -> T:
-        wait_for_future(
-            self._sync_base._loop, self._sync_base._dispatcher_fiber, self._future
-        )
+        while not self._future.done():
+            self._sync_base._dispatcher_fiber.switch()
+        asyncio._set_running_loop(self._sync_base._loop)
         exception = self._future.exception()
         if exception:
             raise exception
@@ -66,15 +71,6 @@ class EventContextManager(Generic[T], AbstractContextManager):
         self._event = EventInfo[T](sync_base, future)
 
     def __enter__(self) -> EventInfo[T]:
-        # The wait takes its first step before the body runs; see
-        # AsyncEventContextManager.__aenter__(). The body of a sync block may make
-        # no call at all, so the event loop gets a turn here.
-        sync_base = self._event._sync_base
-        wait_for_future(
-            sync_base._loop,
-            sync_base._dispatcher_fiber,
-            asyncio.ensure_future(asyncio.sleep(0)),
-        )
         return self._event
 
     def __exit__(
@@ -89,10 +85,6 @@ class EventContextManager(Generic[T], AbstractContextManager):
             self._event.value
 
 
-async def _wait(awaitable: Awaitable[Any]) -> Any:
-    return await awaitable
-
-
 class SyncBase(ImplWrapper):
     def __init__(self, impl_obj: Any) -> None:
         super().__init__(impl_obj)
@@ -102,28 +94,29 @@ class SyncBase(ImplWrapper):
     def __str__(self) -> str:
         return self._impl_obj.__str__()
 
-    def _sync(self, awaitable: Awaitable[Any]) -> Any:
+    def _sync(
+        self,
+        coro: Union[Coroutine[Any, Any, Any], Generator[Any, Any, Any]],
+    ) -> Any:
         __tracebackhide__ = True
-        # An API call returns the coroutine of the call, or, when it runs inside
-        # another call, the awaitable of the channel call (a future).
-        coro = awaitable if asyncio.iscoroutine(awaitable) else _wait(awaitable)
         if self._loop.is_closed():
             coro.close()
             raise Error("Event loop is closed! Is Playwright already stopped?")
-        if self._dispatcher_fiber.dead:
-            coro.close()
-            raise connection_closed_error()
 
+        g_self = greenlet.getcurrent()
         task: asyncio.tasks.Task[Any] = self._loop.create_task(coro)
-        # The task runs in the dispatcher fiber, where the stack of this call is not
-        # visible. The client continues the stack from the caller's frame, which it
-        # reads from the task (capture_raw_stack() in utils/stack_trace.py).
-        setattr(task, "__pw_caller_frame__", sys._getframe(1))
+        setattr(task, "__pw_stack__", inspect.stack(0))
+        setattr(task, "__pw_stack_trace__", traceback.extract_stack(limit=10))
 
-        wait_for_future(self._loop, self._dispatcher_fiber, task)
+        task.add_done_callback(lambda _: g_self.switch())
+        while not task.done():
+            self._dispatcher_fiber.switch()
+        asyncio._set_running_loop(self._loop)
         return task.result()
 
-    def _wrap_handler(self, handler: Union[Callable[..., Any], Any]) -> Any:
+    def _wrap_handler(
+        self, handler: Union[Callable[..., Any], Any]
+    ) -> Callable[..., None]:
         if callable(handler):
             return mapping.wrap_handler(handler)
         return handler
